@@ -73,3 +73,87 @@ We frequently encountered `IndexError` or bad poses due to a **feature mismatch*
 ### 4. COLMAP image registration attempt (SIFT baseline)
 We tried registering `query_image.jpg` into the existing COLMAP reconstruction by creating a fresh project folder (`$SCENE/colmap_reg`), symlinking all training images + the query into `images/`, copying `sparse/0` into `model/0`, then building a new `database.db` with `colmap feature_extractor` + `colmap exhaustive_matcher`. :contentReference[oaicite:0]{index=0}  
 When we ran `colmap image_registrator --database_path database.db --input_path model/0 --output_path out`, COLMAP aborted with `Check failed: existing_image.Name() == image.second.Name() (... vs. query_image.jpg)`, i.e., the new database did not match the image entries expected by the existing reconstruction (database/model inconsistency). :contentReference[oaicite:1]{index=1}
+
+## Phase 2: 6DGS Pose Estimation & Consistent Rendering
+
+Phase 2 replaces the feature-mismatched HLoc pipeline with **6DGS**, a method *natively consistent with the trained 3DGS scene*. 6DGS predicts a camera pose relative to the Gaussian scene, allowing us to render directly from that pose. 
+
+**References:**
+- **6DGS:** [Paper](https://arxiv.org/abs/2407.15484) | [Code](https://github.com/mbortolon97/6dgs)
+- **Focal Length + Pose:** [FocalPose++](https://arxiv.org/abs/2312.02985) (future direction for unknown intrinsics)
+
+### Challenge: Unknown Intrinsics (AI Images)
+6DGS expects known camera intrinsics. Since AI images lack metadata, we:
+1.  Assume an approximate Field of View (e.g., `--fov_deg 60`).
+2.  Apply small yaw corrections (+/- 20°) to compensate for angular error.
+
+---
+
+### (A) Diagnostic: Native Scene Render + Optimization
+**Script:** `gaussian_render_scene_native_v2.py`
+**Goal:** Sanity check the scene and optionally optimize a known camera's view toward the query image using photometric loss.
+
+```bash
+python gaussian_render_scene_native_v2.py \
+  --source_path /scratch/schettip/gaussian-splatting/data/brandenburg_gate \
+  --model_path  /scratch/schettip/gaussian-splatting/output/5db67e12-1 \
+  --iteration   30000 \
+  --image_name  00289298_7642283248.jpg \
+  --out         output/native_init.png \
+  --query_image /scratch/schettip/gaussian-splatting/Hierarchical-Localization/query_image.jpg \
+  --opt_steps   400 \
+  --opt_lr      1e-3
+```
+
+### (B) Train 6DGS Identification Module (Stage 1)
+**Key Metrics** Look for low translation error and decent angular error (~10–13°).
+**Outputs** id_module.th (trained weights) inside the experiment folder.
+
+```bash
+python pretrain_eval_attention.py \
+  --exp_path /scratch/schettip/gaussian-splatting/output \
+  --out_path brdbg_results.json \
+  --data_type all
+```
+
+### (C) Estimate Query Pose (Stage 2)
+**Script:** estimate_pose_from_image.py 
+**Goal:** Predict the Camera-to-World (c2w) matrix for the query image using the trained ID module and an assumed FoV.
+
+```bash
+python estimate_pose_from_image.py \
+  --exp_dir    /scratch/schettip/gaussian-splatting/output/5db67e12-1 \
+  --ply_path   /scratch/schettip/gaussian-splatting/output/5db67e12-1/point_cloud/iteration_30000/point_cloud.ply \
+  --query_image /scratch/schettip/gaussian-splatting/Hierarchical-Localization/query_image.jpg \
+  --fov_deg    60 \
+  --out_pose   /scratch/schettip/gaussian-splatting/output/brdbg_query_pose.npy
+```
+
+### (D) Render from Predicted 6DGS Pose
+**Script:** render_from_6dgs.py 
+**Goal:** Convert the predicted c2w pose to w2c, create a compatible camera, and render the scene.
+
+```bash
+python render_from_6dgs.py \
+  --source_path /scratch/schettip/gaussian-splatting/data/brandenburg_gate \
+  --model_path  /scratch/schettip/gaussian-splatting/output/5db67e12-1 \
+  --iteration   30000 \
+  --pose_npy    /scratch/schettip/gaussian-splatting/output/brdbg_query_pose.npy \
+  --out         /scratch/schettip/gaussian-splatting/output/brdbg_query_render.png
+```
+
+### (E) Yaw Correction & High-Res Rendering
+**Script:** render_from_6dgs_with_more_res.py Goal: Fix common heading errors (~10–20°) and render at higher resolution for better feature inspection.
+**Yaw Variants:** Script automatically saves *_yawm30.png (-30°) and *_yawp30.png (+30°).
+**Resolution:** --render_scale 1.5 improves detail (columns, silhouette) without inflating Gaussian geometry.
+
+```bash
+python render_from_6dgs_with_more_res.py \
+  --source_path /scratch/schettip/gaussian-splatting/data/brandenburg_gate \
+  --model_path  /scratch/schettip/gaussian-splatting/output/5db67e12-1 \
+  --iteration   30000 \
+  --pose_npy    /scratch/schettip/gaussian-splatting/output/brdbg_query_pose.npy \
+  --out         /scratch/schettip/gaussian-splatting/output/brdbg_query_render_hr.png \
+  --render_scale 1.5 \
+  --scale_modifier 1
+  ```
