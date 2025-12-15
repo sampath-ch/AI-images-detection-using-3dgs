@@ -10,9 +10,23 @@ This repository contains a geometry-aware pipeline to verify whether a single qu
 
 ## Notes
 - Designed to run on a Linux HPC environment (conda env: `v_6dgs`).
-- Large assets (datasets, trained models, renders) are not tracked in git; paths are provided via command-line flags.
-- Do **not** commit `.ply` / checkpoints / datasets to git (GitHub blocks >100MB files).
 
+# Brandenburg Gate Geometry Verification (3DGS + 6DGS)
+
+This repository contains a geometry-aware pipeline to verify whether a single query image of the Brandenburg Gate (real or AI-generated) is consistent with a physically plausible camera viewpoint of a real 3D scene.
+
+## Environment Setup
+This pipeline requires a Linux environment with Python 3.10 and CUDA support.
+
+1. **Create the environment:**
+   ```bash
+   conda env create -f environment.yml
+   ```
+
+2. **Activate:**
+    ```bash
+    conda activate v_6dgs
+    ```
 ---
 
 # Phase 1: 3DGS Scene Training (Brandenburg Gate)
