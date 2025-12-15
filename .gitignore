@@ -35,11 +35,6 @@ logs/
 *.tar
 *.zip
 
-# Images (decide later if you want to version a few examples)
-*.png
-*.jpg
-*.jpeg
-
 # COLMAP / 3DGS artifacts (usually huge)
 data/
 point_cloud/
