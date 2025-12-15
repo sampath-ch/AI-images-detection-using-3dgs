@@ -1,0 +1,51 @@
+cat > .gitignore <<'EOF'
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Large / generated / HPC
+output/
+outputs/
+runs/
+logs/
+*.log
+*.tmp
+*.npy
+*.npz
+*.pt
+*.pth
+*.ckpt
+*.pth.tar
+*.pkl
+*.pickle
+*.tar
+*.zip
+
+# Images (decide later if you want to version a few examples)
+*.png
+*.jpg
+*.jpeg
+
+# COLMAP / 3DGS artifacts (usually huge)
+data/
+point_cloud/
+sparse/
+stereo/
+EOF
+*.ply
+output/
+point_cloud/
