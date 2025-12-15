@@ -69,3 +69,7 @@ We frequently encountered `IndexError` or bad poses due to a **feature mismatch*
 * The **COLMAP model** was built using native **SIFT** keypoints.
 * **HLoc** extracted and matched **SuperPoint** features.
 * **Result:** `localize_sfm` attempted to map SuperPoint match indices into COLMAP's SIFT-based `points3D_ids`, causing index out-of-bounds errors. This confirmed that HLoc cannot directly localize against a pre-built SIFT COLMAP model without rebuilding the 3D features.
+
+### 4. COLMAP image registration attempt (SIFT baseline)
+We tried registering `query_image.jpg` into the existing COLMAP reconstruction by creating a fresh project folder (`$SCENE/colmap_reg`), symlinking all training images + the query into `images/`, copying `sparse/0` into `model/0`, then building a new `database.db` with `colmap feature_extractor` + `colmap exhaustive_matcher`. :contentReference[oaicite:0]{index=0}  
+When we ran `colmap image_registrator --database_path database.db --input_path model/0 --output_path out`, COLMAP aborted with `Check failed: existing_image.Name() == image.second.Name() (... vs. query_image.jpg)`, i.e., the new database did not match the image entries expected by the existing reconstruction (database/model inconsistency). :contentReference[oaicite:1]{index=1}

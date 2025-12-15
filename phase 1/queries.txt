@@ -1,0 +1,1 @@
+query_image.jpg PINHOLE 1365 768 1228 1228 682.5 384.0
