@@ -157,3 +157,47 @@ python render_from_6dgs_with_more_res.py \
   --render_scale 1.5 \
   --scale_modifier 1
   ```
+
+## Phase 3: Render-to-Query Comparisons (Verification)
+
+Once a pose-consistent view is rendered from the 3DGS scene (Phase 2), we employ two comparison baselines: (1) learned local-feature matches (SuperPoint+SuperGlue) for qualitative sanity checks, and (2) a controlled SIFT+RANSAC homography alignment for quantitative pixel/gradient error metrics.
+
+### 1. SuperPoint + SuperGlue Visualization (Qualitative)
+**Script:** `superglue_compare_views.py`
+
+**What it does:**
+Extracts SuperPoint keypoints and descriptors, matches them using SuperGlue, and visualizes correspondences between the **Render ↔ Real** and **Render ↔ AI** pairs.
+
+**Why use it:**
+This verifies if "some structure matches." However, we observed that SuperGlue is often *too* robust—it can find visually plausible matches even when high-detail geometry (like the Quadriga statue in GPT images) is hallucinated or incorrect. It serves as a visual sanity check rather than a strict geometric verifier.
+
+```bash
+python superglue_compare_views.py \
+  --real_img   /scratch/schettip/gaussian-splatting/data/brandenburg_gate/images/00289298_7642283248.jpg \
+  --render_img /scratch/schettip/gaussian-splatting/output/brdbg_query_render_hr.png \
+  --ai_img     /scratch/schettip/gaussian-splatting/Hierarchical-Localization/query_image.jpg \
+  --out_dir    /scratch/schettip/gaussian-splatting/output/superglue_matches
+```
+
+### 2. SIFT + RANSAC Homography & Metrics (Main Baseline)
+**Script:** `pixel_compare_homography.py`
+
+**What it does:**
+1.  **Normalization:** Resizes Render, Real, and AI images to a consistent dimension (`--max_long_edge`).
+2.  **Feature Matching:** Detects and matches features (SIFT preferred, ORB fallback). 
+3.  **Alignment:** Estimates a homography using **RANSAC** to map the query image into the render's perspective.
+4.  **Warping:** Warps the query image to align with the render.
+5.  **Metrics:** Computes full-reference metrics (MSE, MAE, PSNR) and an edge-sensitive metric (Gradient-MSE via Sobel filters).
+6.  **Output:** Saves warped images, difference heatmaps, and side-by-side comparisons.
+
+**Interpretation:**
+Real images typically produce a significantly higher number of geometrically consistent inliers under RANSAC and lower pixel/gradient errors. AI images often align poorly, resulting in fewer inliers and higher residual errors, particularly in complex geometry-rich regions.
+
+```bash
+python pixel_compare_homography.py \
+  --render_img /scratch/schettip/gaussian-splatting/output/brdbg_query_render_hr.png \
+  --real_img   /scratch/schettip/gaussian-splatting/data/brandenburg_gate/images/00289298_7642283248.jpg \
+  --ai_img     /scratch/schettip/gaussian-splatting/Hierarchical-Localization/query_image.jpg \
+  --out_dir    /scratch/schettip/gaussian-splatting/output/pixel_compare1 \
+  --max_long_edge 1400
+```
