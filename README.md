@@ -41,8 +41,11 @@ python train.py \
   -m /scratch/schettip/gaussian-splatting/output/5db67e12-1 \
   --iterations 30000
 ```
+---
 
-*Note: These scripts document our initial baseline attempts using HLoc. We later moved to 6DGS-consistent methods (Phase 2) due to the issues described below.*
+## Baseline Localization Experiments (HLoc)
+
+*After training the 3DGS scene, we attempted to establish a baseline for 6-DoF pose estimation using HLoc. The following scripts document these initial attempts and the technical challenges (specifically feature mismatches) that led us to the 6DGS-consistent methods used in Phase 2.*
 
 ### 1. Pose Attempt with HLoc
 **Script:** `find_pose.py`
@@ -59,7 +62,7 @@ python train.py \
 **Attempt B: Native Scene Loading (Success)**
 * **Script:** `gaussian_render_scene_native.py`
 * **Goal:** Sanity check the model by rendering a known training view using the official 3DGS `Scene` and `Camera` objects.
-* **Outcome:** **Correct.** The render matched the ground truth, confirming the trained 3DGS model and `.ply` file were valid. The error was strictly in the HLoc -> Render pipeline alignment.
+* **Outcome:** **Correct.** The render matched the ground truth, confirming the trained 3DGS model and `.ply` file were valid. The error was strictly in the HLoc → Render pipeline alignment.
 
 ### 3. Why HLoc Failed (Root Cause)
 We frequently encountered `IndexError` or bad poses due to a **feature mismatch**:
