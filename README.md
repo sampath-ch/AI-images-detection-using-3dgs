@@ -2,6 +2,10 @@
 
 This repository contains a geometry-aware pipeline to verify whether a single query image of the Brandenburg Gate (real or AI-generated) is consistent with a physically plausible camera viewpoint of a real 3D scene.
 
+## Authors
+1) Sampath Sai Charan Chettipalli - schettip@gmu.edu
+2) Abhiram Kolisetty - akoliset@gmu.edu
+
 ## Core workflow
 1) Train a 3D Gaussian Splatting (3DGS) scene from real calibrated images (COLMAP-style).
 2) Estimate a 6-DoF camera pose for a query image using 6DGS.
